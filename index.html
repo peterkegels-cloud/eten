@@ -81,8 +81,8 @@ textarea{width:100%;min-height:160px;border-radius:12px;border:1px solid var(--l
 const PRODUCTEN = [
   ["ei","Eieren","stuk",4,"Eiwit","Hard koken in de gîte, schaal erop tot opeten, in een hard plastic doosje. Per dag 1 volledig + 1 enkel eiwit."],
   ["sardines","Sardines in tomatensaus","blik",2,"Eiwit","Met brood een volwaardige middagmaaltijd. Leeg blik meedragen tot de vuilbak."],
-  ["kaas","Harde kaas","stuk",1,"Eiwit","Comté (FR), manchego (ES). Houdt dagen goed."],
-  ["saucisson","Saucisson / chorizo","stuk",1,"Eiwit","Compact eiwit en vet, bederft niet snel."],
+  ["kaas","Harde kaas","stuk",1,"Eiwit","Huismerk harde kaas volstaat; comté en manchego zijn duurder. Houdt dagen goed."],
+  ["saucisson","Saucisson / chorizo","stuk",1,"Eiwit","Compact eiwit en vet, bederft niet snel. Huismerk is goedkoper."],
   ["havermout","Havermout","portie",4,"Basis","2 porties per dag: ontbijt en thermos."],
   ["melkpoeder","Melkpoeder","zak",1,"Basis","In de warme havermout en in je eigen koffiemix. Extra eiwit en calcium."],
   ["pindas","Gezouten pinda's","zak",1,"Snelle hap","Een handvol per pauze afnemen, niet uit de zak eten."],
@@ -96,16 +96,16 @@ const PRODUCTEN = [
   ["kiwi","Kiwi","stuk",2,"Vers","Vitamine C. Stevig kopen. Nooit in de yoghurt: een enzym maakt ze na een nacht bitter en waterig."],
   ["banaan","Banaan","stuk",1,"Vers","Zelfde dag op. In de binnenzak of bovenin, tegen vorst en stoten.",true],
   ["brood","Brood","stuk",1,"Vers","Baguette, pistolet of volkoren. Baguette is na 1 dag hard.",true],
-  ["couscous","Couscous","portie",1,"Avond (Jetboil)","Kokend water erop, deksel erop, 5 minuten wachten."],
-  ["rijst","Voorgekookte rijst","zakje",1,"Avond (Jetboil)","Alleen opwarmen. Geen gewone rijst in de Jetboil: veel gas, aanbranden."],
-  ["blikgroenten","Blikgroenten","blik",1,"Avond (Jetboil)","Erwten, asperges, ... Afspoelen tegen zout."],
-  ["peulvruchten","Linzen / kikkererwten","blik",1,"Avond (Jetboil)","Al gekookt: blik, glas of pouch. Alleen opwarmen."],
-  ["tonijn","Tonijn","blik",1,"Avond (Jetboil)","Pouch is lichter dan blik."],
+  ["couscous","Couscous","portie",2,"Middag en avond (Jetboil)","Kokend water erop, deksel erop, 5 minuten wachten."],
+  ["rijst","Voorgekookte rijst","zakje",1,"Middag en avond (Jetboil)","Alleen opwarmen. Geen gewone rijst in de Jetboil: veel gas, aanbranden."],
+  ["blikgroenten","Blikgroenten","blik",1,"Middag en avond (Jetboil)","Erwten, asperges, ... Afspoelen tegen zout."],
+  ["peulvruchten","Linzen / kikkererwten","blik",2,"Middag en avond (Jetboil)","Al gekookt: blik, glas of pouch. Alleen opwarmen."],
+  ["tonijn","Tonijn","blik",2,"Middag en avond (Jetboil)","Pouch is lichter dan blik."],
   ["lipton","Lipton thee","zakje",4,"Drank","Voor thermos 1, met een beetje suiker. Niet de pu-erh."],
   ["suiker","Suikerzakjes","zakje",4,"Drank","Vaak gratis bij een koffie in de bar."],
   ["puerh","Pu-erh thee","portie",2,"Drank","Puur, zonder suiker. Alleen voor het theemoment bij aankomst."],
   ["koffie","Koffie met melk","zakje",4,"Drank","2-in-1 zonder suiker, of eigen mix oploskoffie + poedermelk."],
-  ["bouillon","Bouillonblokjes","blokje",2,"Keuken","Vervangen zout en peper."],
+  ["bouillon","Bouillonblokjes","blokje",4,"Keuken","Vervangen zout en peper."],
   ["boter","Boter","potje",1,"Keuken","Om te bakken in een keuken.",true],
   ["gas","Gascartridge (volle reserve)","stuk",1,"Keuken","Reserve aangesloten = meteen een nieuwe kopen. Niet in elk dorp: kopen bij de eerste kans. 's Nachts warm houden.",true]
 ].map(p=>({id:p[0],naam:p[1],eenheid:p[2],doel:p[3],groep:p[4],tip:p[5],vast:!!p[6]}));
@@ -114,8 +114,10 @@ const PROD = Object.fromEntries(PRODUCTEN.map(p=>[p.id,p]));
 /* Eetknoppen: label, uitleg, voorraadwijziging */
 const EETKNOPPEN = [
   {groep:"Ochtend", items:[
-    {id:"ontbijtkeuze",label:"Ontbijt",sub:"kies wat je at",keuze:true,d:{}},
-    {id:"thermos2",label:"Thermos 2 gevuld",sub:"yoghurt + havermout + appel",d:{yoghurt:-1,havermout:-1,appel:-1}},
+    {id:"ontbijtkeuze",label:"Ontbijt",sub:"kies wat je at",keuze:"ontbijt",d:{}},
+  ]},
+  {groep:"Middag", items:[
+    {id:"middagkeuze",label:"Middagmaal",sub:"kies wat je at",keuze:"middag",d:{}},
   ]},
   {groep:"Onderweg", items:[
     {id:"ei",label:"Ei",d:{ei:-1}},
@@ -129,7 +131,6 @@ const EETKNOPPEN = [
     {id:"mandarijn",label:"Mandarijn",d:{mandarijn:-1}},
     {id:"kiwi",label:"Kiwi",d:{kiwi:-1}},
     {id:"banaan",label:"Banaan",d:{banaan:-1}},
-    {id:"thermos2eten",label:"Thermos 2 gegeten",d:{}},
   ]},
   {groep:"Avond (Jetboil)", items:[
     {id:"couscous",label:"Couscous",d:{couscous:-1}},
@@ -146,9 +147,18 @@ const ONTBIJTEN = [
   {id:"ob-brood-ei",label:"Brood met ei",uitleg:"Volkoren als het kan, mandarijn, koffie",d:{ei:-1,mandarijn:-1,koffie:-1}},
   {id:"ob-gite-ei",label:"Franse gîte + eigen ei",uitleg:"Brood en koffie van de gîte, weinig confituur",d:{ei:-1}},
   {id:"ob-gite-kaas",label:"Franse gîte + eigen kaas",uitleg:"Brood en koffie van de gîte, weinig confituur",d:{}},
-  {id:"ob-bar",label:"Spaanse bar",uitleg:"Tortilla de patatas, café con leche, vers sinaasappelsap",d:{}},
+  {id:"ob-bar",label:"Spaanse bar",uitleg:"Tortilla de patatas, café con leche, vers sinaasappelsap",d:{},vitc:true},
   {id:"ob-keuken",label:"Keuken: eieren met spek",uitleg:"Met volkorenbrood en tomaat. Af en toe, op een rustdag",d:{}},
 ];
+const MIDDAGMALEN = [
+  {id:"md-koud",label:"Thermos koud",uitleg:"Yoghurt met havermout en appel",d:{yoghurt:-1,havermout:-1,appel:-1}},
+  {id:"md-warm-cous",label:"Thermos warm: couscous",uitleg:"Met linzen of kikkererwten, tonijn en bouillon. Thermos voorverwarmen, kokend vullen",d:{couscous:-1,peulvruchten:-1,tonijn:-1,bouillon:-1}},
+  {id:"md-warm-rijst",label:"Thermos warm: rijst",uitleg:"Voorgekookte rijst met linzen of kikkererwten, tonijn en bouillon",d:{rijst:-1,peulvruchten:-1,tonijn:-1,bouillon:-1}},
+  {id:"md-soep",label:"Thermos soep",uitleg:"Bouillon met peulvruchten en blikgroenten",d:{bouillon:-1,peulvruchten:-1,blikgroenten:-1}},
+  {id:"md-rugzak",label:"Rugzaklunch",uitleg:"Sardines met brood en een mandarijn",d:{sardines:-1,mandarijn:-1}},
+  {id:"md-menu",label:"Menú del día",uitleg:"Uitzondering: kost je dagbudget. Sin vino. Avondmaal licht houden",d:{},groen:true},
+];
+const KEUZES = {ontbijt:{titel:"Ontbijt",lijst:ONTBIJTEN},middag:{titel:"Middagmaal",lijst:MIDDAGMALEN}};
 const ZONDER_VOORRAAD = "Zak, reep of pak: pas de voorraad zelf aan in Rugzak als hij op is.";
 
 const MEERKEUZE = ["basis","eiwit"];   /* meerdere aanduidingen mogelijk */
@@ -219,9 +229,9 @@ function waarschuwingen(){
   const week=S.log.filter(x=>x.dag>=weekGrens);
   const sindsGisteren=S.log.some(x=>x.dag<=gi);   /* app minstens sinds gisteren in gebruik */
   if(sindsGisteren){
-    if(!tweeDagen.some(x=>x.type==="eet"&&["mandarijn","kiwi"].includes(x.id)))
+    if(!tweeDagen.some(x=>x.type==="eet"&&(["mandarijn","kiwi"].includes(x.id)||x.vitc||(x.d&&("mandarijn" in x.d||"kiwi" in x.d)))))
       w.push(["Al 2 dagen geen mandarijn of kiwi","Vitamine C: eet er vandaag een."]);
-    if(!tweeDagen.some(x=>(x.type==="eet"&&x.id==="blikgroenten")||(x.type==="maaltijd"&&["veel","weinig"].includes(x.groenten))))
+    if(!tweeDagen.some(x=>(x.type==="eet"&&(x.id==="blikgroenten"||x.groen||(x.d&&"blikgroenten" in x.d)))||(x.type==="maaltijd"&&["veel","weinig"].includes(x.groenten))))
       w.push(["Al 2 dagen geen groenten","Ensalada mixta bij het pelgrimsmenu, of blikgroenten vanavond."]);
   }
   if(new Date().getHours()>=14){
@@ -234,6 +244,8 @@ function waarschuwingen(){
     w.push(["Gisteren te weinig gedronken",`Thermos thee was ${drinkGisteren.thee}. Elk half uur een paar slokken.`]);
   const friet=week.filter(x=>x.type==="maaltijd"&&lijst(x.basis).some(b=>["friet","gebakken patatjes"].includes(b))).length;
   if(friet>=3) w.push([`${friet}× friet of patatjes deze week`,"Kies vaker aardappel, rijst of peulvruchten met groenten."]);
+  if(new Date().getHours()>=20 && !(S.laatsteBackup&&dagKey(new Date(S.laatsteBackup))===vd))
+    w.push(["Nog geen backup vandaag","Scherm Avond: Backup maken, en bewaar ze in Google Drive."]);
   const glazen=week.filter(x=>x.type==="maaltijd").reduce((s,x)=>s+(x.glazen||0),0);
   if(glazen>2) w.push([`${glazen} glazen alcohol deze week`,"Uitzondering of gewoonte?"]);
   return w;
@@ -272,21 +284,22 @@ function omschrijf(x){
   return "";
 }
 
-function kiesOntbijt(){
-  sheet(`<h3>Ontbijt</h3><div style="max-height:65vh;overflow:auto">`+ONTBIJTEN.map(o=>`<button class="btn" style="width:100%;margin-bottom:8px" onclick="ontbijt('${o.id}')">${esc(o.label)}<small>${esc(o.uitleg)}</small></button>`).join("")+`</div><button class="btn" style="width:100%" onclick="sluit()">Annuleer</button>`);
+function kiesUit(soort){
+  const k=KEUZES[soort];
+  sheet(`<h3>${k.titel}</h3><div style="max-height:65vh;overflow:auto">`+k.lijst.map(o=>`<button class="btn" style="width:100%;margin-bottom:8px" onclick="gekozen('${soort}','${o.id}')">${esc(o.label)}<small>${esc(o.uitleg)}</small></button>`).join("")+`</div><button class="btn" style="width:100%" onclick="sluit()">Annuleer</button>`);
 }
-function ontbijt(id){
-  const o=ONTBIJTEN.find(x=>x.id===id); sluit();
+function gekozen(soort,id){
+  const k=KEUZES[soort], o=k.lijst.find(x=>x.id===id); sluit();
   pasToe(o.d,1);
-  S.log.push({t:new Date().toISOString(),dag:dagKey(),type:"eet",id:o.id,label:"Ontbijt: "+o.label,d:o.d,eiwit:true});
+  S.log.push({t:new Date().toISOString(),dag:dagKey(),type:"eet",id:o.id,label:`${k.titel}: ${o.label}`,d:o.d,eiwit:true,vitc:!!o.vitc,groen:!!o.groen});
   bewaar();
-  const leegId=Object.keys(o.d).find(k=>vr(k)===0);
-  toast(leegId?`Ontbijt genoteerd. ${PROD[leegId].naam} is op.`:"Ontbijt genoteerd");
+  const leegId=Object.keys(o.d).find(n=>vr(n)===0);
+  toast(leegId?`${k.titel} genoteerd. ${PROD[leegId].naam} is op.`:`${k.titel} genoteerd`);
   render();
 }
 function eet(id){
   let b; for(const g of EETKNOPPEN){ b=b||g.items.find(i=>i.id===id); }
-  if(b.keuze) return kiesOntbijt();
+  if(b.keuze) return kiesUit(b.keuze);
   pasToe(b.d,1);
   S.log.push({t:new Date().toISOString(),dag:dagKey(),type:"eet",id:b.id,label:b.label,d:b.d});
   bewaar();
@@ -386,7 +399,7 @@ function rAvond(){
   h+=`<h2>Patroon 7 dagen</h2><div class="card" style="font-size:14px">${patroon()}</div>`;
   h+=`<h2>Export en backup</h2><div class="grid">
     <button class="btn wide" onclick="deel()">Dagoverzicht delen<small>naar Notion, WhatsApp of mail</small></button>
-    <button class="btn" onclick="backup()">Backup maken<small>bestand bewaren</small></button>
+    <button class="btn" onclick="backup()">Backup maken<small>delen naar Google Drive</small></button>
     <button class="btn" onclick="$('#bestand').click()">Backup terugzetten<small>van bestand</small></button>
   </div><input type="file" id="bestand" accept="application/json,.json" class="hidden" onchange="herstel(this)">
   <div class="muted" style="font-size:13px;margin-top:8px">Je gegevens staan alleen op deze telefoon. Maak elke avond een backup.</div>`;
@@ -418,7 +431,7 @@ function patroon(){
   const dagen=new Set(l.map(x=>x.dag)).size||1;
   const hap=l.filter(x=>x.type==="eet").length;
   const glazen=m.reduce((s,x)=>s+(x.glazen||0),0);
-  const fruit=l.filter(x=>x.type==="eet"&&["mandarijn","kiwi"].includes(x.id)).length;
+  const fruit=l.filter(x=>x.type==="eet"&&(["mandarijn","kiwi"].includes(x.id)||x.vitc||(x.d&&("mandarijn" in x.d||"kiwi" in x.d)))).length;
   return `Maaltijden: ${m.length}<br>Basis: ${esc(tel("basis"))}<br>Groenten: ${esc(tel("groenten"))}<br>Glazen alcohol: ${glazen}<br>Mandarijn of kiwi: ${fruit} (${(fruit/dagen).toFixed(1)} per dag)<br>Eetmomenten onderweg: ${(hap/dagen).toFixed(1)} per dag`;
 }
 async function deel(){
@@ -426,16 +439,29 @@ async function deel(){
   try{ if(navigator.share){ await navigator.share({title:"Eten vandaag",text:t}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
   try{ await navigator.clipboard.writeText(t); toast("Gekopieerd"); }catch(e){ sheet(`<h3>Kopieer dit</h3><textarea readonly>${esc(t)}</textarea><button class="btn primary" style="width:100%;margin-top:10px" onclick="sluit()">OK</button>`); }
 }
-function backup(){
-  const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`eten-backup-${dagKey()}.json`;
+async function backup(){
+  const nu=new Date(); S.laatsteBackup=nu.toISOString(); bewaar();
+  const naam=`eten-backup-${dagKey(nu)}-${String(nu.getHours()).padStart(2,"0")}${String(nu.getMinutes()).padStart(2,"0")}.json`;
+  const tekst=JSON.stringify(S,null,1);
+  try{
+    const f=new File([tekst],naam,{type:"application/json"});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){ await navigator.share({files:[f],title:naam}); toast("Backup gedeeld"); render(); return; }
+  }catch(e){ if(e&&e.name==="AbortError"){ toast("Delen geannuleerd: kies Drive of Gmail"); return; } }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([tekst],{type:"application/json"})); a.download=naam;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
-  toast("Backup gemaakt");
+  toast("Backup gedownload"); render();
 }
+function herstelOK(){ S=Object.assign(leeg(),window._nieuw); window._nieuw=null; bewaar(); sluit(); toast("Backup teruggezet"); render(); }
 function herstel(inp){
   const f=inp.files&&inp.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ try{ const n=JSON.parse(r.result); if(!n||!Array.isArray(n.log)) throw 0; S=Object.assign(leeg(),n); bewaar(); toast("Backup teruggezet"); render(); }catch(e){ toast("Dit is geen geldige backup"); } };
+  r.onload=()=>{
+    let n; try{ n=JSON.parse(r.result); if(!n||!Array.isArray(n.log)) throw 0; }catch(e){ toast("Dit is geen geldige backup"); return; }
+    window._nieuw=n;
+    const dagen=n.log.map(x=>x.dag).sort(); const laatst=dagen.length?dagen[dagen.length-1]:"(leeg)";
+    const wanneer=n.laatsteBackup?new Date(n.laatsteBackup).toLocaleString("nl-BE"):"onbekend";
+    sheet(`<h3>Backup terugzetten?</h3><p>Backup gemaakt op: <b>${esc(wanneer)}</b><br>Laatste registratie: <b>${esc(laatst)}</b><br>${n.log.length} registraties</p><p style="color:var(--warn)">Alles wat nu in de app staat, wordt vervangen.</p><div class="grid"><button class="btn" onclick="sluit()">Annuleer</button><button class="btn primary" onclick="herstelOK()">Terugzetten</button></div>`);
+  };
   r.readAsText(f); inp.value="";
 }
 

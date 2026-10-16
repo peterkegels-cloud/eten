@@ -1,5 +1,5 @@
 // Offline-cache voor "Eten onderweg". Verhoog VERSIE bij elke nieuwe versie van de app.
-const VERSIE = "eten-v4";
+const VERSIE = "eten-v5";
 const BESTANDEN = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 // Altijd verse bestanden ophalen bij installatie (niet uit de browsercache).
