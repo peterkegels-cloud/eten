@@ -140,9 +140,11 @@ const EETKNOPPEN = [
 ];
 const ZONDER_VOORRAAD = "Zak, reep of pak: pas de voorraad zelf aan in Rugzak als hij op is.";
 
+const MEERKEUZE = ["basis","eiwit"];   /* meerdere aanduidingen mogelijk */
+function lijst(v){return Array.isArray(v)?v:(v?[v]:[]);}
 const BOUWSTENEN = {
   basis:["friet","gebakken patatjes","aardappel","rijst","pasta","brood","couscous","peulvruchten","geen"],
-  eiwit:["worst","vlees","vis","ei","kaas","peulvruchten","geen"],
+  eiwit:["worst","vlees","vis","zeevruchten","ei","kaas","peulvruchten","geen"],
   groenten:["veel","weinig","geen"],
   portie:["klein","normaal","groot"]
 };
@@ -213,13 +215,13 @@ function waarschuwingen(){
   }
   if(new Date().getHours()>=14){
     const vandaag=opDag(vd);
-    if(!vandaag.some(x=>(x.type==="eet"&&["ei","sardines","kaas","saucisson"].includes(x.id))||(x.type==="maaltijd"&&x.eiwit&&x.eiwit!=="geen")))
+    if(!vandaag.some(x=>(x.type==="eet"&&["ei","sardines","kaas","saucisson"].includes(x.id))||(x.type==="maaltijd"&&lijst(x.eiwit).some(e=>e!=="geen"))))
       w.push(["Nog geen eiwit vandaag","Ei, sardines, kaas of saucisson."]);
   }
   const drinkGisteren=opDag(gi).find(x=>x.type==="drinken");
   if(drinkGisteren&&["half","vol"].includes(drinkGisteren.thee))
     w.push(["Gisteren te weinig gedronken",`Thermos thee was ${drinkGisteren.thee}. Elk half uur een paar slokken.`]);
-  const friet=week.filter(x=>x.type==="maaltijd"&&["friet","gebakken patatjes"].includes(x.basis)).length;
+  const friet=week.filter(x=>x.type==="maaltijd"&&lijst(x.basis).some(b=>["friet","gebakken patatjes"].includes(b))).length;
   if(friet>=3) w.push([`${friet}× friet of patatjes deze week`,"Kies vaker aardappel, rijst of peulvruchten met groenten."]);
   const glazen=week.filter(x=>x.type==="maaltijd").reduce((s,x)=>s+(x.glazen||0),0);
   if(glazen>2) w.push([`${glazen} glazen alcohol deze week`,"Uitzondering of gewoonte?"]);
@@ -254,7 +256,7 @@ function logHTML(){
 }
 function omschrijf(x){
   if(x.type==="eet") return x.label;
-  if(x.type==="maaltijd") return `Maaltijd: ${x.basis}, ${x.eiwit}, groenten ${x.groenten}, ${x.portie}${x.glazen?`, ${x.glazen} glas`:""}`;
+  if(x.type==="maaltijd") return `Maaltijd: ${lijst(x.basis).join(" + ")}, ${lijst(x.eiwit).join(" + ")}, groenten ${x.groenten}, ${x.portie}${x.glazen?`, ${x.glazen} glas`:""}`;
   if(x.type==="drinken") return `Drinken: thermos thee ${x.thee}, ${x.water} keer water bijgevuld`;
   return "";
 }
@@ -280,24 +282,30 @@ function wisOK(t){
 }
 
 /* Maaltijd uit bouwstenen */
-let M={basis:null,eiwit:null,groenten:null,portie:"normaal",glazen:0};
+let M={basis:[],eiwit:[],groenten:null,portie:"normaal",glazen:0};
 function rMaaltijd(){
   const lab={basis:"Basis",eiwit:"Eiwit",groenten:"Groenten",portie:"Portie"};
   let h=`<div class="muted">Voor wat je krijgt of koopt: pelgrimsmenu, frietkot, stoof in de keuken.</div>`;
   for(const k in BOUWSTENEN){
-    h+=`<h2>${lab[k]}</h2><div class="chips">`+BOUWSTENEN[k].map(v=>`<button class="chip ${M[k]===v?"on":""}" onclick="kies('${k}','${v}')">${v}</button>`).join("")+`</div>`;
+    h+=`<h2>${lab[k]}${MEERKEUZE.includes(k)?' <span style="text-transform:none;letter-spacing:0;font-weight:400">(meerdere mogelijk)</span>':""}</h2><div class="chips">`+BOUWSTENEN[k].map(v=>`<button class="chip ${(MEERKEUZE.includes(k)?M[k].includes(v):M[k]===v)?"on":""}" onclick="kies('${k}','${v}')">${v}</button>`).join("")+`</div>`;
   }
   h+=`<h2>Glas wijn of bier</h2><div class="chips">`+[0,1,2].map(n=>`<button class="chip ${M.glazen===n?"on":""}" onclick="kies('glazen',${n})">${n===0?"geen":n}</button>`).join("")+`</div>`;
-  const klaar=M.basis&&M.eiwit&&M.groenten;
+  const klaar=M.basis.length&&M.eiwit.length&&M.groenten;
   h+=`<div style="margin-top:20px"><button class="btn primary" style="width:100%;${klaar?"":"opacity:.5"}" onclick="bewaarMaaltijd()" ${klaar?"":"disabled"}>Opslaan</button></div>
   ${klaar?"":'<div class="muted" style="font-size:13px;margin-top:6px">Kies basis, eiwit en groenten.</div>'}`;
   $("#main").innerHTML=h;
 }
-function kies(k,v){M[k]=v;render();}
+function kies(k,v){
+  if(MEERKEUZE.includes(k)){
+    if(v==="geen"){ M[k]=M[k].includes("geen")?[]:["geen"]; }
+    else{ const a=M[k].filter(x=>x!=="geen"); M[k]=a.includes(v)?a.filter(x=>x!==v):[...a,v]; }
+  } else M[k]=v;
+  render();
+}
 function bewaarMaaltijd(){
-  if(!(M.basis&&M.eiwit&&M.groenten)) return;
+  if(!(M.basis.length&&M.eiwit.length&&M.groenten)) return;
   S.log.push(Object.assign({t:new Date().toISOString(),dag:dagKey(),type:"maaltijd"},M));
-  bewaar(); M={basis:null,eiwit:null,groenten:null,portie:"normaal",glazen:0};
+  bewaar(); M={basis:[],eiwit:[],groenten:null,portie:"normaal",glazen:0};
   toast("Maaltijd opgeslagen"); ga("vandaag");
 }
 
@@ -382,7 +390,7 @@ function patroon(){
   const grens=new Date(); grens.setDate(grens.getDate()-6); const g=dagKey(grens);
   const l=S.log.filter(x=>x.dag>=g);
   const m=l.filter(x=>x.type==="maaltijd");
-  const tel=(k)=>{const c={};for(const x of m){c[x[k]]=(c[x[k]]||0)+1;}return Object.entries(c).sort((a,b)=>b[1]-a[1]).map(e=>`${e[0]} ${e[1]}×`).join(", ")||"–";};
+  const tel=(k)=>{const c={};for(const x of m){for(const v of lijst(x[k])){c[v]=(c[v]||0)+1;}}return Object.entries(c).sort((a,b)=>b[1]-a[1]).map(e=>`${e[0]} ${e[1]}×`).join(", ")||"–";};
   const dagen=new Set(l.map(x=>x.dag)).size||1;
   const hap=l.filter(x=>x.type==="eet").length;
   const glazen=m.reduce((s,x)=>s+(x.glazen||0),0);
