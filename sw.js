@@ -1,5 +1,6 @@
 // Offline-cache voor "Eten onderweg". Verhoog VERSIE bij elke nieuwe versie van de app.
-const VERSIE = "eten-v6";
+// Ruimt alleen eigen caches (eten-...) op: andere apps op hetzelfde adres (x4) blijven intact.
+const VERSIE = "eten-v7";
 const BESTANDEN = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 // Altijd verse bestanden ophalen bij installatie (niet uit de browsercache).
@@ -14,7 +15,7 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== VERSIE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k.startsWith("eten-") && k !== VERSIE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
