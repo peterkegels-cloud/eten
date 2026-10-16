@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Eten onderweg</title>
+<meta name="theme-color" content="#0f2a3d">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#f4f1ec; --card:#ffffff; --ink:#1b2630; --muted:#6b7580; --line:#e2ddd5;
+  --accent:#0f6e73; --accent-ink:#ffffff; --warn:#b4471f; --ok:#2f7d3a; --soft:#e7f1f1;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#10161c; --card:#19222b; --ink:#e8edf1; --muted:#93a0ab; --line:#2a3540;
+    --accent:#3fb6b9; --accent-ink:#0b1a1f; --warn:#f08a5d; --ok:#7cc785; --soft:#1d3036;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 8px;border-bottom:1px solid var(--line)}
+header h1{margin:0;font-size:20px}
+header .sub{color:var(--muted);font-size:14px;margin-top:2px}
+main{padding:12px 16px 110px;max-width:640px;margin:0 auto}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:22px 0 8px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:14px;padding:14px 12px;font-size:16px;font-weight:600;text-align:left;min-height:58px;cursor:pointer}
+.btn small{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:2px}
+.btn:active{transform:scale(.98)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);text-align:center}
+.btn.wide{grid-column:1/-1}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.timer{font-size:18px;font-weight:700}
+.timer.late{color:var(--warn)}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .name{flex:1;cursor:pointer}
+.row .name small{display:block;color:var(--muted);font-size:13px}
+.step{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--soft);color:var(--ink);font-size:22px;font-weight:700;cursor:pointer}
+.count{min-width:34px;text-align:center;font-weight:700;font-size:18px}
+.count.low{color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:10px 14px;font-size:15px;cursor:pointer}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.log .row{cursor:pointer}
+.muted{color:var(--muted)}
+.switch{display:flex;align-items:center;justify-content:space-between}
+.switch input{width:52px;height:30px}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;color:var(--muted);padding:10px 2px 12px;font-size:12px;cursor:pointer}
+nav button span{display:block;font-size:22px;line-height:1.2}
+nav button.on{color:var(--accent);font-weight:700}
+.sheet{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;z-index:20}
+.sheet.show{display:flex}
+.sheet .box{background:var(--card);width:100%;border-radius:18px 18px 0 0;padding:18px 16px 26px;max-width:640px;margin:0 auto}
+.sheet h3{margin:0 0 8px}
+.toast{position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:30;max-width:90%;text-align:center}
+.toast.show{opacity:1}
+textarea{width:100%;min-height:160px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px;font:14px/1.4 ui-monospace,monospace}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">Vandaag</h1>
+  <div class="sub" id="subtitle"></div>
+</header>
+<main id="main"></main>
+<nav id="nav"></nav>
+<div class="sheet" id="sheet"><div class="box" id="sheetbox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ---------- Productlijst (uit het masterdocument, 16 okt 2026) ---------- */
+/* id, naam, eenheid, doel voor 2 dagen, groep, tip, vast (= niet schalen bij 3 dagen) */
+const PRODUCTEN = [
+  ["ei","Eieren","stuk",4,"Eiwit","Hard koken in de gîte, schaal erop tot opeten, in een hard plastic doosje. Per dag 1 volledig + 1 enkel eiwit."],
+  ["sardines","Sardines in tomatensaus","blik",2,"Eiwit","Met brood een volwaardige middagmaaltijd. Leeg blik meedragen tot de vuilbak."],
+  ["kaas","Harde kaas","stuk",1,"Eiwit","Comté (FR), manchego (ES). Houdt dagen goed."],
+  ["saucisson","Saucisson / chorizo","stuk",1,"Eiwit","Compact eiwit en vet, bederft niet snel."],
+  ["havermout","Havermout","portie",4,"Basis","2 porties per dag: ontbijt en thermos."],
+  ["pindas","Gezouten pinda's","zak",1,"Snelle hap","Een handvol per pauze afnemen, niet uit de zak eten."],
+  ["chocolade","Pure chocolade","reep",1,"Snelle hap","Lekker op peperkoek. Ook voor de zware klimmen (Roncesvalles, O Cebreiro)."],
+  ["peperkoek","Peperkoek","pak",1,"Snelle hap","Snelle suiker overdag."],
+  ["koekjes","Droge koekjes","pak",1,"Snelle hap","Bv. galletas María (ES)."],
+  ["marsepijn","Marsepijn","stuk",1,"Snelle hap","Mazapán (ES), pâte d'amande (FR). Opkikker, geen maaltijd."],
+  ["yoghurt","Yoghurt","potje",2,"Vers","De dag ervoor kopen: dorpswinkels openen 's ochtends laat. 's Nachts in de koelkast of een koude kamer."],
+  ["appel","Appel","stuk",2,"Vers","In stukjes in de yoghurt. Mag 's avonds al gesneden worden."],
+  ["mandarijn","Mandarijnen","stuk",4,"Vers","Vitamine C. In de jaszak, houden een week. Clémentines (FR)."],
+  ["kiwi","Kiwi","stuk",2,"Vers","Vitamine C. Stevig kopen. Nooit in de yoghurt: een enzym maakt ze na een nacht bitter en waterig."],
+  ["banaan","Banaan","stuk",1,"Vers","Zelfde dag op. In de binnenzak of bovenin, tegen vorst en stoten.",true],
+  ["brood","Brood","stuk",1,"Vers","Baguette, pistolet of volkoren. Baguette is na 1 dag hard.",true],
+  ["couscous","Couscous","portie",1,"Avond (Jetboil)","Kokend water erop, deksel erop, 5 minuten wachten."],
+  ["rijst","Voorgekookte rijst","zakje",1,"Avond (Jetboil)","Alleen opwarmen. Geen gewone rijst in de Jetboil: veel gas, aanbranden."],
+  ["blikgroenten","Blikgroenten","blik",1,"Avond (Jetboil)","Erwten, asperges, ... Afspoelen tegen zout."],
+  ["peulvruchten","Linzen / kikkererwten","blik",1,"Avond (Jetboil)","Al gekookt: blik, glas of pouch. Alleen opwarmen."],
+  ["tonijn","Tonijn","blik",1,"Avond (Jetboil)","Pouch is lichter dan blik."],
+  ["lipton","Lipton thee","zakje",4,"Drank","Voor thermos 1, met een beetje suiker. Niet de pu-erh."],
+  ["suiker","Suikerzakjes","zakje",4,"Drank","Vaak gratis bij een koffie in de bar."],
+  ["puerh","Pu-erh thee","portie",2,"Drank","Puur, zonder suiker. Alleen voor het theemoment bij aankomst."],
+  ["koffie","Koffie met melk","zakje",4,"Drank","2-in-1 zonder suiker, of eigen mix oploskoffie + poedermelk."],
+  ["bouillon","Bouillonblokjes","blokje",2,"Keuken","Vervangen zout en peper."],
+  ["boter","Boter","potje",1,"Keuken","Om te bakken in een keuken.",true],
+  ["gas","Gascartridge (volle reserve)","stuk",1,"Keuken","Reserve aangesloten = meteen een nieuwe kopen. Niet in elk dorp: kopen bij de eerste kans. 's Nachts warm houden.",true]
+].map(p=>({id:p[0],naam:p[1],eenheid:p[2],doel:p[3],groep:p[4],tip:p[5],vast:!!p[6]}));
+const PROD = Object.fromEntries(PRODUCTEN.map(p=>[p.id,p]));
+
+/* Eetknoppen: label, uitleg, voorraadwijziging */
+const EETKNOPPEN = [
+  {groep:"Ochtend", items:[
+    {id:"ontbijt",label:"Ontbijt havermout",d:{havermout:-1}},
+    {id:"thermos2",label:"Thermos 2 gevuld",sub:"yoghurt + havermout + appel",d:{yoghurt:-1,havermout:-1,appel:-1}},
+  ]},
+  {groep:"Onderweg", items:[
+    {id:"ei",label:"Ei",d:{ei:-1}},
+    {id:"sardines",label:"Sardines",sub:"met brood",d:{sardines:-1}},
+    {id:"pindas",label:"Handvol pinda's",d:{}},
+    {id:"chocpeper",label:"Chocolade + peperkoek",d:{}},
+    {id:"koekjes",label:"Koekjes",d:{}},
+    {id:"marsepijn",label:"Marsepijn",d:{}},
+    {id:"kaas",label:"Kaas",d:{}},
+    {id:"saucisson",label:"Saucisson / chorizo",d:{}},
+    {id:"mandarijn",label:"Mandarijn",d:{mandarijn:-1}},
+    {id:"kiwi",label:"Kiwi",d:{kiwi:-1}},
+    {id:"banaan",label:"Banaan",d:{banaan:-1}},
+    {id:"thermos2eten",label:"Thermos 2 gegeten",d:{}},
+  ]},
+  {groep:"Avond (Jetboil)", items:[
+    {id:"couscous",label:"Couscous",d:{couscous:-1}},
+    {id:"rijst",label:"Voorgekookte rijst",d:{rijst:-1}},
+    {id:"blikgroenten",label:"Blikgroenten",d:{blikgroenten:-1}},
+    {id:"peulvruchten",label:"Linzen / kikkererwten",d:{peulvruchten:-1}},
+    {id:"tonijn",label:"Tonijn",d:{tonijn:-1}},
+  ]},
+];
+const ZONDER_VOORRAAD = "Zak, reep of pak: pas de voorraad zelf aan in Rugzak als hij op is.";
+
+const BOUWSTENEN = {
+  basis:["friet","gebakken patatjes","aardappel","rijst","pasta","brood","couscous","peulvruchten","geen"],
+  eiwit:["worst","vlees","vis","ei","kaas","peulvruchten","geen"],
+  groenten:["veel","weinig","geen"],
+  portie:["klein","normaal","groot"]
+};
+
+/* ---------- Opslag ---------- */
+const KEY="eten-onderweg-v1";
+function leeg(){return {voorraad:{},doelen:{},log:[],drieDagen:false};}
+let S;
+try{ S = JSON.parse(localStorage.getItem(KEY)) || leeg(); }catch(e){ S = leeg(); }
+S = Object.assign(leeg(), S);
+function bewaar(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ toast("Opslaan mislukt: maak een backup"); } }
+if(navigator.storage && navigator.storage.persist){ navigator.storage.persist().catch(()=>{}); }
+
+/* ---------- Hulpjes ---------- */
+const $=s=>document.querySelector(s);
+function dagKey(d=new Date()){const z=n=>String(n).padStart(2,"0");return d.getFullYear()+"-"+z(d.getMonth()+1)+"-"+z(d.getDate());}
+function uur(iso){const d=new Date(iso);return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");}
+function vr(id){return S.voorraad[id]||0;}
+function doel(id){return (S.doelen[id]!=null)?S.doelen[id]:PROD[id].doel;}
+function doelNu(id){const p=PROD[id];return (S.drieDagen && !p.vast)?Math.ceil(doel(id)*1.5):doel(id);}
+function pasToe(d,teken){for(const k in d){S.voorraad[k]=Math.max(0,vr(k)+teken*d[k]);}}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+let toastT;
+function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>e.classList.remove("show"),2200);}
+function sheet(html){$("#sheetbox").innerHTML=html;$("#sheet").classList.add("show");}
+function sluit(){$("#sheet").classList.remove("show");}
+$("#sheet").addEventListener("click",e=>{if(e.target.id==="sheet")sluit();});
+function vandaagLog(){const k=dagKey();return S.log.filter(x=>x.dag===k);}
+function laatsteHap(){const e=S.log.filter(x=>x.type==="eet"||x.type==="maaltijd");return e.length?e[e.length-1]:null;}
+
+/* ---------- Schermen ---------- */
+const TABS=[["vandaag","🍳","Vandaag"],["maaltijd","🍲","Maaltijd"],["rugzak","🎒","Rugzak"],["winkel","🛒","Winkel"],["avond","🌙","Avond"]];
+let tab="vandaag", doelModus=false;
+function nav(){ $("#nav").innerHTML=TABS.map(t=>`<button class="${t[0]===tab?"on":""}" onclick="ga('${t[0]}')"><span>${t[1]}</span>${t[2]}</button>`).join(""); }
+function ga(t){tab=t;render();window.scrollTo(0,0);}
+
+function render(){
+  nav();
+  const titels={vandaag:"Vandaag",maaltijd:"Maaltijd",rugzak:"Rugzak",winkel:"Winkel",avond:"Avond"};
+  $("#title").textContent=titels[tab];
+  const d=new Date();
+  $("#subtitle").textContent=d.toLocaleDateString("nl-BE",{weekday:"long",day:"numeric",month:"long"})+(S.drieDagen?" · 3 dagen voorraad":"");
+  ({vandaag:rVandaag,maaltijd:rMaaltijd,rugzak:rRugzak,winkel:rWinkel,avond:rAvond})[tab]();
+}
+
+function timerHTML(){
+  const l=laatsteHap();
+  if(!l) return `<div class="card"><div class="timer">Nog niets gegeten</div></div>`;
+  const min=Math.floor((Date.now()-new Date(l.t))/60000);
+  const txt=min<60?`${min} min`:`${Math.floor(min/60)}u ${String(min%60).padStart(2,"0")}`;
+  const laat=min>=120;
+  return `<div class="card"><div class="timer ${laat?"late":""}">Laatste hap: ${txt} geleden</div>${laat?'<div class="muted">Tijd voor iets kleins.</div>':""}</div>`;
+}
+
+function rVandaag(){
+  let h=timerHTML();
+  for(const g of EETKNOPPEN){
+    h+=`<h2>${g.groep}</h2><div class="grid">`;
+    for(const b of g.items){
+      const ids=Object.keys(b.d);
+      const info = b.sub? b.sub : (ids.length===1? `nog ${vr(ids[0])} in rugzak` : "");
+      h+=`<button class="btn" onclick="eet('${b.id}')">${esc(b.label)}${info?`<small>${esc(info)}</small>`:""}</button>`;
+    }
+    h+=`</div>`;
+  }
+  h+=`<h2>Vandaag gegeten</h2>`+logHTML();
+  $("#main").innerHTML=h;
+}
+
+function logHTML(){
+  const l=vandaagLog().filter(x=>x.type!=="drinken");
+  if(!l.length) return `<div class="card muted">Nog niets.</div>`;
+  return `<div class="card log">`+l.slice().reverse().map(x=>`<div class="row" onclick="wis('${x.t}')"><div class="name">${uur(x.t)} · ${esc(omschrijf(x))}</div><span class="muted">✕</span></div>`).join("")+`</div><div class="muted" style="font-size:13px">Tik op een regel om ze te wissen.</div>`;
+}
+function omschrijf(x){
+  if(x.type==="eet") return x.label;
+  if(x.type==="maaltijd") return `Maaltijd: ${x.basis}, ${x.eiwit}, groenten ${x.groenten}, ${x.portie}${x.glazen?`, ${x.glazen} glas`:""}`;
+  if(x.type==="drinken") return `Drinken: thermos thee ${x.thee}, ${x.water} keer water bijgevuld`;
+  return "";
+}
+
+function eet(id){
+  let b; for(const g of EETKNOPPEN){ b=b||g.items.find(i=>i.id===id); }
+  pasToe(b.d,1);
+  S.log.push({t:new Date().toISOString(),dag:dagKey(),type:"eet",id:b.id,label:b.label,d:b.d});
+  bewaar();
+  const leegId=Object.keys(b.d).find(k=>vr(k)===0);
+  toast(leegId? `${b.label} genoteerd. ${PROD[leegId].naam} is op.` : (Object.keys(b.d).length? `${b.label} genoteerd` : `${b.label} genoteerd`));
+  render();
+}
+
+function wis(t){
+  const x=S.log.find(e=>e.t===t); if(!x) return;
+  sheet(`<h3>Wissen?</h3><p>${uur(x.t)} · ${esc(omschrijf(x))}</p>${x.d&&Object.keys(x.d).length?'<p class="muted">De voorraad wordt teruggezet.</p>':""}<div class="grid"><button class="btn" onclick="sluit()">Annuleer</button><button class="btn primary" onclick="wisOK('${t}')">Wissen</button></div>`);
+}
+function wisOK(t){
+  const i=S.log.findIndex(e=>e.t===t); if(i<0) return;
+  const x=S.log[i]; if(x.d) pasToe(x.d,-1);
+  S.log.splice(i,1); bewaar(); sluit(); render(); toast("Gewist");
+}
+
+/* Maaltijd uit bouwstenen */
+let M={basis:null,eiwit:null,groenten:null,portie:"normaal",glazen:0};
+function rMaaltijd(){
+  const lab={basis:"Basis",eiwit:"Eiwit",groenten:"Groenten",portie:"Portie"};
+  let h=`<div class="muted">Voor wat je krijgt of koopt: pelgrimsmenu, frietkot, stoof in de keuken.</div>`;
+  for(const k in BOUWSTENEN){
+    h+=`<h2>${lab[k]}</h2><div class="chips">`+BOUWSTENEN[k].map(v=>`<button class="chip ${M[k]===v?"on":""}" onclick="kies('${k}','${v}')">${v}</button>`).join("")+`</div>`;
+  }
+  h+=`<h2>Glas wijn of bier</h2><div class="chips">`+[0,1,2].map(n=>`<button class="chip ${M.glazen===n?"on":""}" onclick="kies('glazen',${n})">${n===0?"geen":n}</button>`).join("")+`</div>`;
+  const klaar=M.basis&&M.eiwit&&M.groenten;
+  h+=`<div style="margin-top:20px"><button class="btn primary" style="width:100%;${klaar?"":"opacity:.5"}" onclick="bewaarMaaltijd()" ${klaar?"":"disabled"}>Opslaan</button></div>
+  ${klaar?"":'<div class="muted" style="font-size:13px;margin-top:6px">Kies basis, eiwit en groenten.</div>'}`;
+  $("#main").innerHTML=h;
+}
+function kies(k,v){M[k]=v;render();}
+function bewaarMaaltijd(){
+  if(!(M.basis&&M.eiwit&&M.groenten)) return;
+  S.log.push(Object.assign({t:new Date().toISOString(),dag:dagKey(),type:"maaltijd"},M));
+  bewaar(); M={basis:null,eiwit:null,groenten:null,portie:"normaal",glazen:0};
+  toast("Maaltijd opgeslagen"); ga("vandaag");
+}
+
+/* Rugzak */
+function groepen(){const g={};for(const p of PRODUCTEN){(g[p.groep]=g[p.groep]||[]).push(p);}return g;}
+function rRugzak(){
+  let h=`<div class="card switch"><div><b>Doelen aanpassen</b><div class="muted" style="font-size:13px">Hoeveel je wilt hebben voor 2 dagen</div></div><input type="checkbox" ${doelModus?"checked":""} onchange="doelModus=this.checked;render()"></div>`;
+  const g=groepen();
+  for(const k in g){
+    h+=`<h2>${k}</h2><div class="card">`;
+    for(const p of g[k]){
+      const n=doelModus?doel(p.id):vr(p.id);
+      const laag=!doelModus && vr(p.id)<doelNu(p.id);
+      const fn=doelModus?"zetDoel":"zetVr";
+      h+=`<div class="row"><div class="name" onclick="tip('${p.id}')">${esc(p.naam)}<small>${doelModus?"doel per 2 dagen":`doel ${doelNu(p.id)} ${p.eenheid}`} · tik voor tip</small></div>
+        <button class="step" onclick="${fn}('${p.id}',-1)">−</button><div class="count ${laag?"low":""}">${n}</div><button class="step" onclick="${fn}('${p.id}',1)">+</button></div>`;
+    }
+    h+=`</div>`;
+  }
+  h+=`<div class="muted" style="font-size:13px">${ZONDER_VOORRAAD}</div>`;
+  $("#main").innerHTML=h;
+}
+function zetVr(id,n){S.voorraad[id]=Math.max(0,vr(id)+n);bewaar();render();}
+function zetDoel(id,n){S.doelen[id]=Math.max(0,doel(id)+n);bewaar();render();}
+function tip(id){const p=PROD[id];sheet(`<h3>${esc(p.naam)}</h3><p>${esc(p.tip)}</p><p class="muted">In rugzak: ${vr(id)} ${p.eenheid} · doel ${doelNu(id)}</p><button class="btn primary" style="width:100%" onclick="sluit()">OK</button>`);}
+
+/* Winkel */
+function tekort(){return PRODUCTEN.map(p=>({p,n:Math.max(0,doelNu(p.id)-vr(p.id))})).filter(x=>x.n>0);}
+function rWinkel(){
+  let h=`<div class="card switch"><div><b>3 dagen voorraad</b><div class="muted" style="font-size:13px">Zondag, feestdag of stuk zonder winkels</div></div><input type="checkbox" ${S.drieDagen?"checked":""} onchange="S.drieDagen=this.checked;bewaar();render()"></div>`;
+  const t=tekort();
+  if(!t.length){ h+=`<div class="card"><b style="color:var(--ok)">Alles op voorraad.</b></div>`; }
+  else{
+    const g={}; for(const x of t){(g[x.p.groep]=g[x.p.groep]||[]).push(x);}
+    for(const k in g){
+      h+=`<h2>${k}</h2><div class="card">`+g[k].map(x=>`<div class="row"><div class="name" onclick="tip('${x.p.id}')">${esc(x.p.naam)}<small>nog ${x.n} ${x.p.eenheid} kopen</small></div><button class="btn" style="min-height:44px;padding:8px 12px" onclick="gekocht('${x.p.id}',${x.n})">Gekocht</button></div>`).join("")+`</div>`;
+    }
+  }
+  h+=`<div class="card muted" style="font-size:14px">Yoghurt altijd de dag ervoor kopen. Banaan en brood op de dag zelf.</div>`;
+  $("#main").innerHTML=h;
+}
+function gekocht(id,n){S.voorraad[id]=vr(id)+n;bewaar();toast(`${PROD[id].naam}: +${n}`);render();}
+
+/* Avond */
+let D={thee:null,water:0};
+function rAvond(){
+  const al=vandaagLog().find(x=>x.type==="drinken");
+  let h=`<h2>Drinken vandaag</h2><div class="card">`;
+  if(al){ h+=`<div>${esc(omschrijf(al))}</div><div class="muted" style="font-size:13px;margin-top:4px">Al ingevuld. Opnieuw opslaan vervangt dit.</div><hr style="border:0;border-top:1px solid var(--line)">`; }
+  h+=`<div style="margin-bottom:8px">Thermos thee</div><div class="chips">`+["leeg","half","vol"].map(v=>`<button class="chip ${D.thee===v?"on":""}" onclick="D.thee='${v}';render()">${v}</button>`).join("")+`</div>
+    <div class="row" style="margin-top:10px"><div class="name">Water bijgevuld<small>aantal keer</small></div><button class="step" onclick="D.water=Math.max(0,D.water-1);render()">−</button><div class="count">${D.water}</div><button class="step" onclick="D.water++;render()">+</button></div>
+    <button class="btn primary" style="width:100%;margin-top:10px" onclick="bewaarDrinken()">Opslaan</button></div>`;
+  h+=`<h2>Dagoverzicht</h2><div class="card" style="white-space:pre-wrap;font-size:14px">${esc(dagtekst())}</div>`;
+  h+=`<h2>Patroon 7 dagen</h2><div class="card" style="font-size:14px">${patroon()}</div>`;
+  h+=`<h2>Export en backup</h2><div class="grid">
+    <button class="btn wide" onclick="deel()">Dagoverzicht delen<small>naar Notion, WhatsApp of mail</small></button>
+    <button class="btn" onclick="backup()">Backup maken<small>bestand bewaren</small></button>
+    <button class="btn" onclick="$('#bestand').click()">Backup terugzetten<small>van bestand</small></button>
+  </div><input type="file" id="bestand" accept="application/json,.json" class="hidden" onchange="herstel(this)">
+  <div class="muted" style="font-size:13px;margin-top:8px">Je gegevens staan alleen op deze telefoon. Maak elke avond een backup.</div>`;
+  $("#main").innerHTML=h;
+}
+function bewaarDrinken(){
+  if(!D.thee){toast("Kies eerst de thermos");return;}
+  const k=dagKey(); S.log=S.log.filter(x=>!(x.dag===k&&x.type==="drinken"));
+  S.log.push({t:new Date().toISOString(),dag:k,type:"drinken",thee:D.thee,water:D.water});
+  bewaar(); D={thee:null,water:0}; toast("Drinken opgeslagen"); render();
+}
+function dagtekst(dag=dagKey()){
+  const l=S.log.filter(x=>x.dag===dag);
+  let t=`Eten ${dag}\n`;
+  if(!l.length) return t+"(niets geregistreerd)";
+  for(const x of l) t+=`${uur(x.t)}  ${omschrijf(x)}\n`;
+  const eet=l.filter(x=>x.type!=="drinken");
+  let gat=0; for(let i=1;i<eet.length;i++){gat=Math.max(gat,(new Date(eet[i].t)-new Date(eet[i-1].t))/60000);}
+  if(eet.length>1) t+=`\nLangste pauze zonder eten: ${Math.floor(gat/60)}u ${String(Math.round(gat%60)).padStart(2,"0")}`;
+  const op=PRODUCTEN.filter(p=>vr(p.id)===0&&doelNu(p.id)>0).map(p=>p.naam);
+  if(op.length) t+=`\nOp: ${op.join(", ")}`;
+  return t.trim();
+}
+function patroon(){
+  const grens=new Date(); grens.setDate(grens.getDate()-6); const g=dagKey(grens);
+  const l=S.log.filter(x=>x.dag>=g);
+  const m=l.filter(x=>x.type==="maaltijd");
+  const tel=(k)=>{const c={};for(const x of m){c[x[k]]=(c[x[k]]||0)+1;}return Object.entries(c).sort((a,b)=>b[1]-a[1]).map(e=>`${e[0]} ${e[1]}×`).join(", ")||"–";};
+  const dagen=new Set(l.map(x=>x.dag)).size||1;
+  const hap=l.filter(x=>x.type==="eet").length;
+  const glazen=m.reduce((s,x)=>s+(x.glazen||0),0);
+  const fruit=l.filter(x=>x.type==="eet"&&["mandarijn","kiwi"].includes(x.id)).length;
+  return `Maaltijden: ${m.length}<br>Basis: ${esc(tel("basis"))}<br>Groenten: ${esc(tel("groenten"))}<br>Glazen alcohol: ${glazen}<br>Mandarijn of kiwi: ${fruit} (${(fruit/dagen).toFixed(1)} per dag)<br>Eetmomenten onderweg: ${(hap/dagen).toFixed(1)} per dag`;
+}
+async function deel(){
+  const t=dagtekst();
+  try{ if(navigator.share){ await navigator.share({title:"Eten vandaag",text:t}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+  try{ await navigator.clipboard.writeText(t); toast("Gekopieerd"); }catch(e){ sheet(`<h3>Kopieer dit</h3><textarea readonly>${esc(t)}</textarea><button class="btn primary" style="width:100%;margin-top:10px" onclick="sluit()">OK</button>`); }
+}
+function backup(){
+  const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=`eten-backup-${dagKey()}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  toast("Backup gemaakt");
+}
+function herstel(inp){
+  const f=inp.files&&inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ const n=JSON.parse(r.result); if(!n||!Array.isArray(n.log)) throw 0; S=Object.assign(leeg(),n); bewaar(); toast("Backup teruggezet"); render(); }catch(e){ toast("Dit is geen geldige backup"); } };
+  r.readAsText(f); inp.value="";
+}
+
+/* Timer verversen */
+setInterval(()=>{ if(tab==="vandaag" && !$("#sheet").classList.contains("show")) render(); },60000);
+
+render();
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>
