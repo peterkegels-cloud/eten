@@ -171,7 +171,7 @@ function sheet(html){$("#sheetbox").innerHTML=html;$("#sheet").classList.add("sh
 function sluit(){$("#sheet").classList.remove("show");}
 $("#sheet").addEventListener("click",e=>{if(e.target.id==="sheet")sluit();});
 function vandaagLog(){const k=dagKey();return S.log.filter(x=>x.dag===k);}
-function laatsteHap(){const e=S.log.filter(x=>x.type==="eet"||x.type==="maaltijd");return e.length?e[e.length-1]:null;}
+function laatsteHap(){const e=S.log.filter(x=>x.type==="eet"||x.type==="maaltijd");return e.length?e.reduce((a,b)=>b.t>a.t?b:a):null;}
 
 /* ---------- Schermen ---------- */
 const TABS=[["vandaag","🍳","Vandaag"],["maaltijd","🍲","Maaltijd"],["rugzak","🎒","Rugzak"],["winkel","🛒","Winkel"],["avond","🌙","Avond"]];
@@ -197,8 +197,43 @@ function timerHTML(){
   return `<div class="card"><div class="timer ${laat?"late":""}">Laatste hap: ${txt} geleden</div>${laat?'<div class="muted">Tijd voor iets kleins.</div>':""}</div>`;
 }
 
+/* Aandachtspunten: eenvoudige regels op basis van de registraties */
+function gisterKey(n=1){const d=new Date();d.setDate(d.getDate()-n);return dagKey(d);}
+function waarschuwingen(){
+  const w=[], vd=dagKey(), gi=gisterKey(), weekGrens=gisterKey(6);
+  const opDag=(k)=>S.log.filter(x=>x.dag===k);
+  const tweeDagen=[...opDag(vd),...opDag(gi)];
+  const week=S.log.filter(x=>x.dag>=weekGrens);
+  const sindsGisteren=S.log.some(x=>x.dag<=gi);   /* app minstens sinds gisteren in gebruik */
+  if(sindsGisteren){
+    if(!tweeDagen.some(x=>x.type==="eet"&&["mandarijn","kiwi"].includes(x.id)))
+      w.push(["Al 2 dagen geen mandarijn of kiwi","Vitamine C: eet er vandaag een."]);
+    if(!tweeDagen.some(x=>(x.type==="eet"&&x.id==="blikgroenten")||(x.type==="maaltijd"&&["veel","weinig"].includes(x.groenten))))
+      w.push(["Al 2 dagen geen groenten","Ensalada mixta bij het pelgrimsmenu, of blikgroenten vanavond."]);
+  }
+  if(new Date().getHours()>=14){
+    const vandaag=opDag(vd);
+    if(!vandaag.some(x=>(x.type==="eet"&&["ei","sardines","kaas","saucisson"].includes(x.id))||(x.type==="maaltijd"&&x.eiwit&&x.eiwit!=="geen")))
+      w.push(["Nog geen eiwit vandaag","Ei, sardines, kaas of saucisson."]);
+  }
+  const drinkGisteren=opDag(gi).find(x=>x.type==="drinken");
+  if(drinkGisteren&&["half","vol"].includes(drinkGisteren.thee))
+    w.push(["Gisteren te weinig gedronken",`Thermos thee was ${drinkGisteren.thee}. Elk half uur een paar slokken.`]);
+  const friet=week.filter(x=>x.type==="maaltijd"&&["friet","gebakken patatjes"].includes(x.basis)).length;
+  if(friet>=3) w.push([`${friet}× friet of patatjes deze week`,"Kies vaker aardappel, rijst of peulvruchten met groenten."]);
+  const glazen=week.filter(x=>x.type==="maaltijd").reduce((s,x)=>s+(x.glazen||0),0);
+  if(glazen>2) w.push([`${glazen} glazen alcohol deze week`,"Uitzondering of gewoonte?"]);
+  return w;
+}
+function letOpHTML(){
+  const w=waarschuwingen();
+  if(!w.length) return "";
+  return `<div class="card" style="border-color:var(--warn)"><div style="font-weight:700;color:var(--warn);margin-bottom:4px">Let op</div>`+
+    w.map(x=>`<div style="padding:6px 0;border-top:1px solid var(--line)"><b>${esc(x[0])}</b><div class="muted" style="font-size:14px">${esc(x[1])}</div></div>`).join("")+`</div>`;
+}
+
 function rVandaag(){
-  let h=timerHTML();
+  let h=timerHTML()+letOpHTML();
   for(const g of EETKNOPPEN){
     h+=`<h2>${g.groep}</h2><div class="grid">`;
     for(const b of g.items){
