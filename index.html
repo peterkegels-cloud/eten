@@ -84,13 +84,14 @@ const PRODUCTEN = [
   ["kaas","Harde kaas","stuk",1,"Eiwit","Comté (FR), manchego (ES). Houdt dagen goed."],
   ["saucisson","Saucisson / chorizo","stuk",1,"Eiwit","Compact eiwit en vet, bederft niet snel."],
   ["havermout","Havermout","portie",4,"Basis","2 porties per dag: ontbijt en thermos."],
+  ["melkpoeder","Melkpoeder","zak",1,"Basis","In de warme havermout en in je eigen koffiemix. Extra eiwit en calcium."],
   ["pindas","Gezouten pinda's","zak",1,"Snelle hap","Een handvol per pauze afnemen, niet uit de zak eten."],
   ["chocolade","Pure chocolade","reep",1,"Snelle hap","Lekker op peperkoek. Ook voor de zware klimmen (Roncesvalles, O Cebreiro)."],
   ["peperkoek","Peperkoek","pak",1,"Snelle hap","Snelle suiker overdag."],
   ["koekjes","Droge koekjes","pak",1,"Snelle hap","Bv. galletas María (ES)."],
   ["marsepijn","Marsepijn","stuk",1,"Snelle hap","Mazapán (ES), pâte d'amande (FR). Opkikker, geen maaltijd."],
   ["yoghurt","Yoghurt","potje",2,"Vers","De dag ervoor kopen: dorpswinkels openen 's ochtends laat. 's Nachts in de koelkast of een koude kamer."],
-  ["appel","Appel","stuk",2,"Vers","In stukjes in de yoghurt. Mag 's avonds al gesneden worden."],
+  ["appel","Appel","stuk",4,"Vers","In stukjes in de yoghurt en in de warme havermout. Mag 's avonds al gesneden worden."],
   ["mandarijn","Mandarijnen","stuk",4,"Vers","Vitamine C. In de jaszak, houden een week. Clémentines (FR)."],
   ["kiwi","Kiwi","stuk",2,"Vers","Vitamine C. Stevig kopen. Nooit in de yoghurt: een enzym maakt ze na een nacht bitter en waterig."],
   ["banaan","Banaan","stuk",1,"Vers","Zelfde dag op. In de binnenzak of bovenin, tegen vorst en stoten.",true],
@@ -113,7 +114,7 @@ const PROD = Object.fromEntries(PRODUCTEN.map(p=>[p.id,p]));
 /* Eetknoppen: label, uitleg, voorraadwijziging */
 const EETKNOPPEN = [
   {groep:"Ochtend", items:[
-    {id:"ontbijt",label:"Ontbijt havermout",d:{havermout:-1}},
+    {id:"ontbijtkeuze",label:"Ontbijt",sub:"kies wat je at",keuze:true,d:{}},
     {id:"thermos2",label:"Thermos 2 gevuld",sub:"yoghurt + havermout + appel",d:{yoghurt:-1,havermout:-1,appel:-1}},
   ]},
   {groep:"Onderweg", items:[
@@ -137,6 +138,16 @@ const EETKNOPPEN = [
     {id:"peulvruchten",label:"Linzen / kikkererwten",d:{peulvruchten:-1}},
     {id:"tonijn",label:"Tonijn",d:{tonijn:-1}},
   ]},
+];
+const ONTBIJTEN = [
+  {id:"ob-warm",label:"Warm: havermout + ei",uitleg:"Havermout met melkpoeder en appel, ei ernaast, koffie met melk",d:{havermout:-1,appel:-1,ei:-1,koffie:-1}},
+  {id:"ob-koud",label:"Koud: yoghurt + havermout",uitleg:"Met appel, handvol pinda's en een mandarijn",d:{yoghurt:-1,havermout:-1,appel:-1,mandarijn:-1}},
+  {id:"ob-brood-kaas",label:"Brood met kaas",uitleg:"Volkoren als het kan, mandarijn, koffie",d:{mandarijn:-1,koffie:-1}},
+  {id:"ob-brood-ei",label:"Brood met ei",uitleg:"Volkoren als het kan, mandarijn, koffie",d:{ei:-1,mandarijn:-1,koffie:-1}},
+  {id:"ob-gite-ei",label:"Franse gîte + eigen ei",uitleg:"Brood en koffie van de gîte, weinig confituur",d:{ei:-1}},
+  {id:"ob-gite-kaas",label:"Franse gîte + eigen kaas",uitleg:"Brood en koffie van de gîte, weinig confituur",d:{}},
+  {id:"ob-bar",label:"Spaanse bar",uitleg:"Tortilla de patatas, café con leche, vers sinaasappelsap",d:{}},
+  {id:"ob-keuken",label:"Keuken: eieren met spek",uitleg:"Met volkorenbrood en tomaat. Af en toe, op een rustdag",d:{}},
 ];
 const ZONDER_VOORRAAD = "Zak, reep of pak: pas de voorraad zelf aan in Rugzak als hij op is.";
 
@@ -215,7 +226,7 @@ function waarschuwingen(){
   }
   if(new Date().getHours()>=14){
     const vandaag=opDag(vd);
-    if(!vandaag.some(x=>(x.type==="eet"&&["ei","sardines","kaas","saucisson"].includes(x.id))||(x.type==="maaltijd"&&lijst(x.eiwit).some(e=>e!=="geen"))))
+    if(!vandaag.some(x=>(x.type==="eet"&&(["ei","sardines","kaas","saucisson"].includes(x.id)||x.eiwit===true))||(x.type==="maaltijd"&&lijst(x.eiwit).some(e=>e!=="geen"))))
       w.push(["Nog geen eiwit vandaag","Ei, sardines, kaas of saucisson."]);
   }
   const drinkGisteren=opDag(gi).find(x=>x.type==="drinken");
@@ -256,13 +267,26 @@ function logHTML(){
 }
 function omschrijf(x){
   if(x.type==="eet") return x.label;
-  if(x.type==="maaltijd") return `Maaltijd: ${lijst(x.basis).join(" + ")}, ${lijst(x.eiwit).join(" + ")}, groenten ${x.groenten}, ${x.portie}${x.glazen?`, ${x.glazen} glas`:""}`;
+  if(x.type==="maaltijd") return `Maaltijd: ${lijst(x.basis).join(" + ")}, ${lijst(x.eiwit).join(" + ")}, groenten ${x.groenten}, ${x.portie}${x.glazen?`, ${x.glazen} ${x.glazen===1?"glas":"glazen"}`:""}`;
   if(x.type==="drinken") return `Drinken: thermos thee ${x.thee}, ${x.water} keer water bijgevuld`;
   return "";
 }
 
+function kiesOntbijt(){
+  sheet(`<h3>Ontbijt</h3><div style="max-height:65vh;overflow:auto">`+ONTBIJTEN.map(o=>`<button class="btn" style="width:100%;margin-bottom:8px" onclick="ontbijt('${o.id}')">${esc(o.label)}<small>${esc(o.uitleg)}</small></button>`).join("")+`</div><button class="btn" style="width:100%" onclick="sluit()">Annuleer</button>`);
+}
+function ontbijt(id){
+  const o=ONTBIJTEN.find(x=>x.id===id); sluit();
+  pasToe(o.d,1);
+  S.log.push({t:new Date().toISOString(),dag:dagKey(),type:"eet",id:o.id,label:"Ontbijt: "+o.label,d:o.d,eiwit:true});
+  bewaar();
+  const leegId=Object.keys(o.d).find(k=>vr(k)===0);
+  toast(leegId?`Ontbijt genoteerd. ${PROD[leegId].naam} is op.`:"Ontbijt genoteerd");
+  render();
+}
 function eet(id){
   let b; for(const g of EETKNOPPEN){ b=b||g.items.find(i=>i.id===id); }
+  if(b.keuze) return kiesOntbijt();
   pasToe(b.d,1);
   S.log.push({t:new Date().toISOString(),dag:dagKey(),type:"eet",id:b.id,label:b.label,d:b.d});
   bewaar();
@@ -419,7 +443,11 @@ function herstel(inp){
 setInterval(()=>{ if(tab==="vandaag" && !$("#sheet").classList.contains("show")) render(); },60000);
 
 render();
-if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+if("serviceWorker" in navigator){
+  const hadController=!!navigator.serviceWorker.controller; let herladen=false;
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{ if(hadController&&!herladen){ herladen=true; location.reload(); } });
+  navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>r.update()).catch(()=>{});
+}
 </script>
 </body>
 </html>
